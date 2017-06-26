@@ -1,0 +1,15 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  num: 1
+  time: 2017-03-24 22:24:20
+  key: MyString
+  East_longitude: MyString
+  North_latitude: MyString
+
+two:
+  num: 1
+  time: 2017-03-24 22:24:20
+  key: MyString
+  East_longitude: MyString
+  North_latitude: MyString

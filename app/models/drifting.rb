@@ -1,0 +1,2 @@
+class Drifting < ApplicationRecord
+end

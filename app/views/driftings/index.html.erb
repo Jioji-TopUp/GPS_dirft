@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>drifting_data</title>
+  
+  <script src="http://cdn.bootcss.com/echarts/3.4.0/echarts.js"></script>
+  <script src="https://cdn.bootcss.com/echarts/3.4.0/extension/bmap.js"></script>
+  <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=53oVIOgmSIejwV7EfphPgTynOZbIiVYu"></script>
+
+</head>
+<body>
+  <!-- 为 ECharts 准备一个具备大小（宽高）的 DOM -->
+  <div id="echarts_show" style="width: 100%;height:600px;"></div>           <!-- 这里height设为100%后页面加载不出来！！！   -->
+
+  <script type="text/javascript">
+      // 基于准备好的dom，初始化echarts实例
+      var myChart = echarts.init(document.getElementById('echarts_show'));
+
+      // 指定图表的配置项和数据
+      var data = [
+          <% @drifting.each do |t| %>
+          [<%= t.East_longitude %>,<%= t.North_latitude %>,'<%= t.time%>'],
+          <% end %>
+      ];
+
+      var res = [],
+          resGreen = [];
+
+      var interval = 300,//                                  相邻坐标点的时间间隔
+          i = 0,
+          k = 1;//                                           加速倍率参数
+
+      function getInterval(i) {  //                          计算出相邻坐标点的时间间隔
+          var nowDate = new Date(data[i][2].substring(0, 19));
+          var priDate = new Date(data[i-1][2].substring(0, 19));
+             interval = (nowDate - priDate)/1000;
+      }
+
+
+      var option = {
+          title: {
+              text: '显示倍率',
+              left: 'left'
+          },
+          toolbox: {    //                                   设置3个不同倍率的按钮
+              show : true,
+              left:'100px',
+              itemSize: 20,
+              feature : {
+                  myTool1 : {
+                      show : true,
+                      left: '100px',
+                      title : '倍率x10',
+                      icon : 'image://http://echarts.baidu.com/images/favicon.png',
+                      onclick : function (){
+                          k = 10;
+                      }
+                  },
+                  myTool2 : {
+                      show : true,
+                      left: '100px',
+                      title : '倍率x5',
+                      icon : 'image://http://echarts.baidu.com/images/favicon.png',
+                      onclick : function (){
+                          k = 5;
+                      }
+                  },
+                  myTool3 : {
+                      show : true,
+                      left: '100px',
+                      title : '倍率x3',
+                      icon : 'image://http://echarts.baidu.com/images/favicon.png',
+                      onclick : function (){
+                          k = 3;
+                      }
+                  }
+              }
+          },
+          tooltip : {
+              trigger: 'item'
+          },
+          bmap: {
+              center: [121.935666,30.908025],               //初始化地图坐标
+              zoom: 18,                                     //放大倍数
+              roam: true,
+              mapStyle: {
+                  styleJson: [{
+                      'featureType': 'railway',
+                      'elementType': 'all',
+                      'stylers': {
+                          'visibility': 'off'
+                      }
+                  }, {
+                      'featureType': 'highway',
+                      'elementType': 'all',
+                      'stylers': {
+                          'color': '#fdfdfd'
+                      }
+                  }, {
+                      'featureType': 'highway',
+                      'elementType': 'labels',
+                      'stylers': {
+                          'visibility': 'off'
+                      }
+                  }, {
+                      'featureType': 'arterial',
+                      'elementType': 'geometry',
+                      'stylers': {
+                          'color': '#fefefe'
+                      }
+                  }, {
+                      'featureType': 'arterial',
+                      'elementType': 'geometry.fill',
+                      'stylers': {
+                          'color': '#fefefe'
+                      }
+                  }, {
+                      'featureType': 'subway',
+                      'elementType': 'all',
+                      'stylers': {
+                          'visibility': 'off'
+                      }
+                  },]
+              }
+          },
+          series : [
+              {
+                  type: 'scatter',
+                  coordinateSystem: 'bmap',
+                  data: res, 
+                  symbolSize: function (val) {
+                      return val[2] / 10;
+                  },
+                  label: {
+                      normal: {
+                          formatter: '{b}',
+                          position: 'right',
+                          show: false
+                      },
+                      emphasis: {
+                          show: true
+                      }
+                  },
+                  itemStyle: {
+                      normal: {
+                          color: 'red'
+                      }
+                  }
+              },
+              {
+                  type: 'scatter',
+                  coordinateSystem: 'bmap',
+                  data: resGreen,
+                  symbolSize: function (val) {
+                      return val[2] / 10;
+                  },
+                  label: {
+                      normal: {
+                          formatter: '{b}',
+                          position: 'right',
+                          show: false
+                      },
+                      emphasis: {
+                          show: true
+                      }
+                  },
+                  itemStyle: {
+                      normal: {
+                          color: 'green'
+                      }
+                  }
+              },
+          ]
+      };
+
+      setInterval(function () {                           //设置时间间隔
+          if (i < data.length ){
+              for (var j = 0; j < k; j++)                 //每次加载k个点
+              {
+                  res.push(data[i++]);
+              }
+              if (i > 400){                               //使轨迹保持定长
+                  resGreen = resGreen.concat(res.splice(0,k));
+              }
+              if (resGreen.length > 400){
+                  resGreen.splice(0,k);
+              }
+              getInterval(i);
+          }
+          else
+          {
+              resGreen.splice(0,k);                       //红色轨迹到达尽头时，绿色轨迹继续变短
+          }
+          myChart.setOption({
+              series: [
+                  {
+                      data:res
+                  },
+                  {
+                      data: resGreen
+                  }
+              
+              ]
+          });
+      },interval);
+      // 使用刚指定的配置项和数据显示图表。
+      myChart.setOption(option);
+  </script>
+</body>
+</html>
+
+
+
+
